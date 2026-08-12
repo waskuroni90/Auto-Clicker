@@ -37,7 +37,7 @@ class AutoClickerAccessibilityService : AccessibilityService() {
     }
 
     suspend fun performTap(x: Float, y: Float, durationMs: Long = 60L): Boolean = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-        val strokeDuration = durationMs.coerceIn(40L, 300L)
+        val strokeDuration = durationMs.coerceAtLeast(10L)
         val path = Path().apply {
             moveTo(x, y)
             lineTo(x + 0.5f, y + 0.5f)
@@ -65,7 +65,7 @@ class AutoClickerAccessibilityService : AccessibilityService() {
             moveTo(x, y)
             lineTo(x + 0.5f, y + 0.5f)
         }
-        performGesturePathWithRetry(path, durationMs.coerceAtLeast(500L), maxRetries = 2, targetX = x, targetY = y)
+        performGesturePathWithRetry(path, durationMs.coerceAtLeast(300L), maxRetries = 2, targetX = x, targetY = y)
     }
 
     suspend fun performSwipe(
@@ -79,7 +79,7 @@ class AutoClickerAccessibilityService : AccessibilityService() {
             moveTo(startX, startY)
             lineTo(endX, endY)
         }
-        performGesturePathWithRetry(path, durationMs.coerceAtLeast(100L), maxRetries = 2)
+        performGesturePathWithRetry(path, durationMs.coerceAtLeast(50L), maxRetries = 2)
     }
 
     private suspend fun performGesturePathWithRetry(

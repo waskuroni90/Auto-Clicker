@@ -14,8 +14,8 @@ android {
     applicationId = "com.aistudio.autoclicker.vautoc"
     minSdk = 24
     targetSdk = 36
-    versionCode = 1
-    versionName = "1.0"
+    versionCode = 2
+    versionName = "2.0.2"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
@@ -44,7 +44,7 @@ android {
       signingConfig = signingConfigs.getByName("release")
     }
     debug {
-      
+      signingConfig = signingConfigs.getByName("debugConfig")
     }
   }
   compileOptions {

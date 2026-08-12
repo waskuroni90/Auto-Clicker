@@ -23,10 +23,10 @@ object GestureExecutor {
 
         return when (target.type) {
             TargetType.SINGLE_TAP -> {
-                service.performTap(startX, startY, target.durationMs.coerceIn(50L, 300L))
+                service.performTap(startX, startY, target.durationMs.coerceAtLeast(10L))
             }
             TargetType.LONG_PRESS -> {
-                val duration = if (target.durationMs < 500L) 1000L else target.durationMs
+                val duration = target.durationMs.coerceAtLeast(300L)
                 service.performLongPress(startX, startY, duration)
             }
             TargetType.DOUBLE_TAP -> {
@@ -35,7 +35,7 @@ object GestureExecutor {
             TargetType.SWIPE -> {
                 val endX = (target.swipeEndXPx + offsetX).coerceAtLeast(0f)
                 val endY = (target.swipeEndYPx + offsetY).coerceAtLeast(0f)
-                service.performSwipe(startX, startY, endX, endY, target.durationMs.coerceAtLeast(300L))
+                service.performSwipe(startX, startY, endX, endY, target.durationMs.coerceAtLeast(50L))
             }
             TargetType.WAIT -> {
                 if (target.delayMs > 0) {
