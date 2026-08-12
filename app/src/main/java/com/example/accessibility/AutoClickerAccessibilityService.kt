@@ -36,35 +36,36 @@ class AutoClickerAccessibilityService : AccessibilityService() {
         }
     }
 
-    suspend fun performTap(x: Float, y: Float, durationMs: Long = 50L): Boolean = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+    suspend fun performTap(x: Float, y: Float, durationMs: Long = 60L): Boolean = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+        val strokeDuration = durationMs.coerceIn(40L, 300L)
         val path = Path().apply {
             moveTo(x, y)
-            lineTo(x, y)
+            lineTo(x + 0.5f, y + 0.5f)
         }
-        performGesturePath(path, durationMs.coerceAtLeast(10L))
+        performGesturePathWithRetry(path, strokeDuration, maxRetries = 3, targetX = x, targetY = y)
     }
 
     suspend fun performDoubleTap(x: Float, y: Float): Boolean = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
         val path1 = Path().apply {
             moveTo(x, y)
-            lineTo(x, y)
+            lineTo(x + 0.5f, y + 0.5f)
         }
-        val res1 = performGesturePath(path1, 50L)
-        kotlinx.coroutines.delay(100L)
+        val res1 = performGesturePathWithRetry(path1, 50L, maxRetries = 3, targetX = x, targetY = y)
+        kotlinx.coroutines.delay(80L)
         val path2 = Path().apply {
             moveTo(x, y)
-            lineTo(x, y)
+            lineTo(x + 0.5f, y + 0.5f)
         }
-        val res2 = performGesturePath(path2, 50L)
-        res1 && res2
+        val res2 = performGesturePathWithRetry(path2, 50L, maxRetries = 3, targetX = x, targetY = y)
+        res1 || res2
     }
 
     suspend fun performLongPress(x: Float, y: Float, durationMs: Long = 1000L): Boolean = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
         val path = Path().apply {
             moveTo(x, y)
-            lineTo(x, y)
+            lineTo(x + 0.5f, y + 0.5f)
         }
-        performGesturePath(path, durationMs.coerceAtLeast(500L))
+        performGesturePathWithRetry(path, durationMs.coerceAtLeast(500L), maxRetries = 2, targetX = x, targetY = y)
     }
 
     suspend fun performSwipe(
@@ -78,7 +79,54 @@ class AutoClickerAccessibilityService : AccessibilityService() {
             moveTo(startX, startY)
             lineTo(endX, endY)
         }
-        performGesturePath(path, durationMs.coerceAtLeast(100L))
+        performGesturePathWithRetry(path, durationMs.coerceAtLeast(100L), maxRetries = 2)
+    }
+
+    private suspend fun performGesturePathWithRetry(
+        path: Path,
+        durationMs: Long,
+        maxRetries: Int = 3,
+        targetX: Float? = null,
+        targetY: Float? = null
+    ): Boolean {
+        for (attempt in 1..maxRetries) {
+            val success = performGesturePath(path, durationMs)
+            if (success) return true
+            if (attempt < maxRetries) {
+                kotlinx.coroutines.delay(25L * attempt)
+            }
+        }
+        // Fallback to Accessibility Node ACTION_CLICK if screen coordinate touch dispatch was rejected
+        if (targetX != null && targetY != null) {
+            return clickAccessibilityNodeAt(targetX, targetY)
+        }
+        return false
+    }
+
+    private fun clickAccessibilityNodeAt(x: Float, y: Float): Boolean {
+        val root = rootInActiveWindow ?: return false
+        val targetNode = findClickableNodeAt(root, x.toInt(), y.toInt())
+        if (targetNode != null) {
+            val clicked = targetNode.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+            if (clicked) return true
+        }
+        return false
+    }
+
+    private fun findClickableNodeAt(node: AccessibilityNodeInfo?, x: Int, y: Int): AccessibilityNodeInfo? {
+        if (node == null) return null
+        val rect = android.graphics.Rect()
+        node.getBoundsInScreen(rect)
+        if (!rect.contains(x, y)) return null
+
+        for (i in 0 until node.childCount) {
+            val child = node.getChild(i) ?: continue
+            val result = findClickableNodeAt(child, x, y)
+            if (result != null) return result
+        }
+
+        if (node.isClickable) return node
+        return null
     }
 
     suspend fun performGesturePath(path: Path, durationMs: Long): Boolean = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {

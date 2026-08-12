@@ -189,6 +189,10 @@ class OverlayManager(
             }
         )
 
+        if (scriptRunner.executionState.value is ExecutionState.Running) {
+            targetView.setTouchThrough(true)
+        }
+
         targetViews.add(targetView)
         if (isOverlayVisible) {
             try {
@@ -355,9 +359,34 @@ class OverlayManager(
         dialogBinding.spinnerActionType.adapter = adapter
         dialogBinding.spinnerActionType.setSelection(target.type.ordinal)
 
+        var selectedMediaUri = target.mediaUri
+
         fun updateFieldsVisibility(type: TargetType) {
             dialogBinding.layoutTextInput.visibility = if (type == TargetType.TEXT_INPUT) android.view.View.VISIBLE else android.view.View.GONE
             dialogBinding.layoutUnreadChatsInput.visibility = if (type == TargetType.OPEN_UNREAD_CHATS) android.view.View.VISIBLE else android.view.View.GONE
+            dialogBinding.layoutMediaVideoInput.visibility = if (type == TargetType.PLAY_VIDEO_AUDIO) android.view.View.VISIBLE else android.view.View.GONE
+
+            if (selectedMediaUri.isNotEmpty()) {
+                dialogBinding.tvMediaVideoStatus.text = "✓ Video Attached"
+                dialogBinding.tvMediaVideoStatus.setTextColor(android.graphics.Color.parseColor("#10B981"))
+            } else {
+                dialogBinding.tvMediaVideoStatus.text = "No video selected"
+                dialogBinding.tvMediaVideoStatus.setTextColor(android.graphics.Color.parseColor("#94A3B8"))
+            }
+        }
+
+        dialogBinding.btnPickGalleryVideo.setOnClickListener {
+            try {
+                val intent = android.content.Intent(android.content.Intent.ACTION_OPEN_DOCUMENT).apply {
+                    addCategory(android.content.Intent.CATEGORY_OPENABLE)
+                    type = "video/*"
+                    addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or android.content.Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION or android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                context.startActivity(intent)
+                android.widget.Toast.makeText(context, "Open app script detail to select video from gallery", android.widget.Toast.LENGTH_SHORT).show()
+            } catch (e: Exception) {
+                android.widget.Toast.makeText(context, "Open app script editor to select video from gallery", android.widget.Toast.LENGTH_SHORT).show()
+            }
         }
 
         updateFieldsVisibility(target.type)
@@ -479,6 +508,7 @@ class OverlayManager(
                 skipMutedChats = skipMuted,
                 autoScroll = autoScroll,
                 stopAtEnd = stopAtEnd,
+                mediaUri = selectedMediaUri,
                 label = "${selectedType.displayName} #${target.order}"
             )
 

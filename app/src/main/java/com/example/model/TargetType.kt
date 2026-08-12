@@ -9,6 +9,7 @@ enum class TargetType(val displayName: String) {
     TEXT_INPUT("Text Input"),
     CLIPBOARD_PASTE("Clipboard Paste"),
     OPEN_UNREAD_CHATS("Open Unread Chats"),
+    PLAY_VIDEO_AUDIO("Gallery Video Audio"),
     SYSTEM_BACK("Back"),
     SYSTEM_HOME("Home"),
     SYSTEM_RECENTS("Recent Apps")

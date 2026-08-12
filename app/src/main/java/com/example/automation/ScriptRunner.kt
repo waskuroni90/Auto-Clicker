@@ -98,6 +98,8 @@ class ScriptRunner(private val feedbackUtils: FeedbackUtils) {
                     }
 
                     GestureExecutor.executeTarget(target, randomOffsetPx)
+                    // Short safeguard delay so consecutive gesture strokes never cancel each other
+                    delay(30L)
                 }
 
                 // Delay between loop repetitions

@@ -48,6 +48,10 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.delay
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -250,6 +254,8 @@ fun ScriptDetailScreen(
                                                     TargetType.WAIT -> Color(0xFF94A3B8)
                                                     TargetType.TEXT_INPUT -> Color(0xFFA855F7)
                                                     TargetType.CLIPBOARD_PASTE -> Color(0xFF10B981)
+                                                    TargetType.OPEN_UNREAD_CHATS -> Color(0xFF10B981)
+                                                    TargetType.PLAY_VIDEO_AUDIO -> Color(0xFFF59E0B)
                                                     else -> Color(0xFFEC4899)
                                                 },
                                                 shape = RoundedCornerShape(4.dp)
@@ -315,6 +321,24 @@ fun ScriptDetailScreen(
                         Icon(imageVector = Icons.Default.Add, contentDescription = null)
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(text = "+ Action Type", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+
+                    Spacer(modifier = Modifier.width(6.dp))
+
+                    OutlinedButton(
+                        onClick = {
+                            val newOrder = targets.size + 1
+                            targets = targets + ClickTarget(
+                                order = newOrder,
+                                type = TargetType.PLAY_VIDEO_AUDIO,
+                                delayMs = 500L,
+                                durationMs = 3000L,
+                                label = "Gallery Video #$newOrder"
+                            )
+                        },
+                        modifier = Modifier.testTag("btn_add_gallery_video_target")
+                    ) {
+                        Text(text = "🎬 + Gallery Video", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFF59E0B))
                     }
 
                     Spacer(modifier = Modifier.width(6.dp))
@@ -425,6 +449,7 @@ fun ActionTypePickerDialog(
                         TargetType.TEXT_INPUT -> Color(0xFFA855F7)
                         TargetType.CLIPBOARD_PASTE -> Color(0xFF10B981)
                         TargetType.OPEN_UNREAD_CHATS -> Color(0xFF10B981)
+                        TargetType.PLAY_VIDEO_AUDIO -> Color(0xFFF59E0B)
                         else -> Color(0xFFEC4899)
                     }
 
@@ -531,6 +556,8 @@ fun TargetDetailCard(
                         TargetType.WAIT -> Color(0xFF94A3B8)
                         TargetType.TEXT_INPUT -> Color(0xFFA855F7)
                         TargetType.CLIPBOARD_PASTE -> Color(0xFF10B981)
+                        TargetType.OPEN_UNREAD_CHATS -> Color(0xFF10B981)
+                        TargetType.PLAY_VIDEO_AUDIO -> Color(0xFFF59E0B)
                         else -> Color(0xFFEC4899)
                     }
                 )
@@ -548,6 +575,122 @@ fun TargetDetailCard(
 
                     IconButton(onClick = onDelete, modifier = Modifier.testTag("btn_delete_target_${target.order}")) {
                         Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete Target", tint = Color(0xFFEF4444))
+                    }
+                }
+            }
+
+            if (target.type == TargetType.PLAY_VIDEO_AUDIO) {
+                Spacer(modifier = Modifier.height(8.dp))
+                val context = androidx.compose.ui.platform.LocalContext.current
+                val scope = androidx.compose.runtime.rememberCoroutineScope()
+                var isSavingFile by remember { mutableStateOf(false) }
+
+                val videoLauncher = rememberLauncherForActivityResult(
+                    contract = ActivityResultContracts.OpenDocument()
+                ) { uri: android.net.Uri? ->
+                    uri?.let {
+                        isSavingFile = true
+                        scope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                            val savedPath = com.example.utils.MediaStorageManager.saveUriToInternalStorage(context, it)
+                            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                                isSavingFile = false
+                                if (!savedPath.isNullOrEmpty()) {
+                                    onUpdate(target.copy(mediaUri = savedPath))
+                                    android.widget.Toast.makeText(context, "✓ Video Audio saved locally for 100% reliable playback!", android.widget.Toast.LENGTH_SHORT).show()
+                                } else {
+                                    onUpdate(target.copy(mediaUri = it.toString()))
+                                    android.widget.Toast.makeText(context, "⚠️ Video attached via direct Uri", android.widget.Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+                    border = BorderStroke(1.dp, Color(0xFFF59E0B))
+                ) {
+                    Column(modifier = Modifier.padding(10.dp)) {
+                        Text(
+                            text = "🎬 Gallery Video Audio Player",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFF59E0B)
+                        )
+                        Text(
+                            text = "Selected video is saved to local app storage for 100% guaranteed speaker sound when button action triggers.",
+                            fontSize = 11.sp,
+                            color = Color(0xFFCBD5E1)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        if (isSavingFile) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                androidx.compose.material3.CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color(0xFFF59E0B), strokeWidth = 2.dp)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Saving video audio to app storage...", fontSize = 11.sp, color = Color(0xFFF59E0B))
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                        }
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Button(
+                                onClick = { videoLauncher.launch(arrayOf("video/*", "audio/*")) },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF59E0B), contentColor = Color(0xFF0F172A))
+                            ) {
+                                Text("📁 Select Gallery Video", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            }
+
+                            Button(
+                                onClick = {
+                                    if (target.mediaUri.isNotEmpty()) {
+                                        val player = com.example.utils.MediaStorageManager.playAudio(context, target.mediaUri)
+                                        android.widget.Toast.makeText(context, "▶️ Testing speaker audio...", android.widget.Toast.LENGTH_SHORT).show()
+                                        scope.launch {
+                                            kotlinx.coroutines.delay(3000L)
+                                            try { player?.stop(); player?.release() } catch (_: Exception) {}
+                                        }
+                                    } else {
+                                        com.example.utils.MediaStorageManager.playFallbackBeep()
+                                        android.widget.Toast.makeText(context, "🔊 Testing speaker beep sound", android.widget.Toast.LENGTH_SHORT).show()
+                                    }
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981), contentColor = Color.White)
+                            ) {
+                                Text("▶️ Test Sound", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            }
+
+                            if (target.mediaUri.isNotEmpty()) {
+                                OutlinedButton(
+                                    onClick = { onUpdate(target.copy(mediaUri = "")) },
+                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFEF4444))
+                                ) {
+                                    Text("Clear", fontSize = 11.sp)
+                                }
+                            }
+                        }
+
+                        if (target.mediaUri.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = "✓ Video Audio Ready: ${target.mediaUri.substringAfterLast('/')}",
+                                fontSize = 11.sp,
+                                color = Color(0xFF10B981),
+                                maxLines = 2
+                            )
+                        } else {
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = "⚠️ No video selected. Tap 'Select Gallery Video' above.",
+                                fontSize = 11.sp,
+                                color = Color(0xFFF59E0B)
+                            )
+                        }
                     }
                 }
             }

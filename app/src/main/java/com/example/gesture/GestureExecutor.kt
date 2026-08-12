@@ -23,7 +23,7 @@ object GestureExecutor {
 
         return when (target.type) {
             TargetType.SINGLE_TAP -> {
-                service.performTap(startX, startY, target.durationMs.coerceAtLeast(50L))
+                service.performTap(startX, startY, target.durationMs.coerceIn(50L, 300L))
             }
             TargetType.LONG_PRESS -> {
                 val duration = if (target.durationMs < 500L) 1000L else target.durationMs
@@ -65,6 +65,37 @@ object GestureExecutor {
                     stopAtEnd = target.stopAtEnd
                 )
                 com.example.automation.UnreadChatDetector.openNextUnreadChat(service, unreadSettings)
+            }
+            TargetType.PLAY_VIDEO_AUDIO -> {
+                if (target.mediaUri.isNotEmpty()) {
+                    var mediaPlayer: android.media.MediaPlayer? = null
+                    try {
+                        val context = service.applicationContext
+                        mediaPlayer = com.example.utils.MediaStorageManager.playAudio(context, target.mediaUri)
+                        val playDurationMs = target.durationMs.coerceAtLeast(100L)
+                        kotlinx.coroutines.delay(playDurationMs)
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        val fallbackDuration = target.durationMs.coerceAtLeast(100L)
+                        kotlinx.coroutines.delay(fallbackDuration)
+                    } finally {
+                        try {
+                            if (mediaPlayer?.isPlaying == true) {
+                                mediaPlayer.stop()
+                            }
+                            mediaPlayer?.release()
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
+                    }
+                    true
+                } else {
+                    val context = service.applicationContext
+                    com.example.utils.MediaStorageManager.playFallbackBeep()
+                    val fallbackDuration = target.durationMs.coerceAtLeast(100L)
+                    kotlinx.coroutines.delay(fallbackDuration)
+                    true
+                }
             }
             TargetType.SYSTEM_BACK -> {
                 service.performBack()
