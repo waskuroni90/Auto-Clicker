@@ -256,6 +256,7 @@ fun ScriptDetailScreen(
                                                     TargetType.CLIPBOARD_PASTE -> Color(0xFF10B981)
                                                     TargetType.OPEN_UNREAD_CHATS -> Color(0xFF10B981)
                                                     TargetType.PLAY_VIDEO_AUDIO -> Color(0xFFF59E0B)
+                                                    TargetType.AUTO_CLICK_SEND -> Color(0xFF0084FF)
                                                     else -> Color(0xFFEC4899)
                                                 },
                                                 shape = RoundedCornerShape(4.dp)
@@ -321,6 +322,23 @@ fun ScriptDetailScreen(
                         Icon(imageVector = Icons.Default.Add, contentDescription = null)
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(text = "+ Action Type", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+
+                    Spacer(modifier = Modifier.width(6.dp))
+
+                    OutlinedButton(
+                        onClick = {
+                            val newOrder = targets.size + 1
+                            targets = targets + ClickTarget(
+                                order = newOrder,
+                                type = TargetType.AUTO_CLICK_SEND,
+                                delayMs = 300L,
+                                label = "Auto Send #$newOrder"
+                            )
+                        },
+                        modifier = Modifier.testTag("btn_add_auto_send_target")
+                    ) {
+                        Text(text = "✈️ + Send Button", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0084FF))
                     }
 
                     Spacer(modifier = Modifier.width(6.dp))
@@ -450,6 +468,7 @@ fun ActionTypePickerDialog(
                         TargetType.CLIPBOARD_PASTE -> Color(0xFF10B981)
                         TargetType.OPEN_UNREAD_CHATS -> Color(0xFF10B981)
                         TargetType.PLAY_VIDEO_AUDIO -> Color(0xFFF59E0B)
+                        TargetType.AUTO_CLICK_SEND -> Color(0xFF0084FF)
                         else -> Color(0xFFEC4899)
                     }
 
@@ -558,6 +577,7 @@ fun TargetDetailCard(
                         TargetType.CLIPBOARD_PASTE -> Color(0xFF10B981)
                         TargetType.OPEN_UNREAD_CHATS -> Color(0xFF10B981)
                         TargetType.PLAY_VIDEO_AUDIO -> Color(0xFFF59E0B)
+                        TargetType.AUTO_CLICK_SEND -> Color(0xFF0084FF)
                         else -> Color(0xFFEC4899)
                     }
                 )
@@ -691,6 +711,30 @@ fun TargetDetailCard(
                                 color = Color(0xFFF59E0B)
                             )
                         }
+                    }
+                }
+            }
+
+            if (target.type == TargetType.AUTO_CLICK_SEND) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+                    border = BorderStroke(1.dp, Color(0xFF0084FF))
+                ) {
+                    Column(modifier = Modifier.padding(10.dp)) {
+                        Text(
+                            text = "✈️ Auto Send Button Clicker",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF0084FF)
+                        )
+                        Text(
+                            text = "Detects and clicks the Send button icon in Messenger, Instagram, WhatsApp, SMS, or Facebook automatically.",
+                            fontSize = 11.sp,
+                            color = Color(0xFFCBD5E1)
+                        )
                     }
                 }
             }

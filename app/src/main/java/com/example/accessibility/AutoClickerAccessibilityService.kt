@@ -220,6 +220,66 @@ class AutoClickerAccessibilityService : AccessibilityService() {
         return null
     }
 
+    suspend fun clickSendButton(fallbackX: Float, fallbackY: Float): Boolean = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+        val root = rootInActiveWindow
+        if (root != null) {
+            val sendNode = findSendButtonNode(root)
+            if (sendNode != null) {
+                val rect = android.graphics.Rect()
+                sendNode.getBoundsInScreen(rect)
+                val centerX = rect.centerX().toFloat()
+                val centerY = rect.centerY().toFloat()
+
+                // 1. Try direct ACTION_CLICK on send node or its clickable parent
+                var clicked = sendNode.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+                if (!clicked && sendNode.parent?.isClickable == true) {
+                    clicked = sendNode.parent.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+                }
+
+                if (clicked) {
+                    Log.d(TAG, "Successfully clicked Send button via Accessibility ACTION_CLICK")
+                    return@withContext true
+                } else if (centerX > 0 && centerY > 0) {
+                    Log.d(TAG, "Tapping Send button center coordinates ($centerX, $centerY)")
+                    return@withContext performTap(centerX, centerY, 60L)
+                }
+            }
+        }
+
+        // 2. Fallback to coordinate tap at configured position
+        Log.d(TAG, "Performing fallback tap for Send button at ($fallbackX, $fallbackY)")
+        performTap(fallbackX, fallbackY, 60L)
+    }
+
+    private fun findSendButtonNode(node: AccessibilityNodeInfo?): AccessibilityNodeInfo? {
+        if (node == null) return null
+
+        val contentDesc = node.contentDescription?.toString()?.lowercase() ?: ""
+        val text = node.text?.toString()?.lowercase() ?: ""
+        val viewId = node.viewIdResourceName?.lowercase() ?: ""
+
+        val isSendMatch = contentDesc.contains("send") || contentDesc.contains("পাঠান") || contentDesc.contains("পাঠাও") ||
+                contentDesc.contains("পোস্ট") || contentDesc.contains("ارسال") || contentDesc.contains("enviar") ||
+                contentDesc.contains("paper_plane") || contentDesc.contains("paperplane") ||
+                text.equals("send", ignoreCase = true) || text.contains("পাঠান") || text.contains("পাঠাও") ||
+                viewId.contains("send") || viewId.contains("composer_send") || viewId.contains("btn_send") || viewId.contains("send_button")
+
+        if (isSendMatch) {
+            if (node.isClickable) return node
+            if (node.parent?.isClickable == true) return node.parent
+            return node
+        }
+
+        // Recursively search children
+        for (i in 0 until node.childCount) {
+            val child = node.getChild(i) ?: continue
+            val result = findSendButtonNode(child)
+            if (result != null) return result
+        }
+
+        return null
+    }
+
     suspend fun performBack(): Boolean = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
         performGlobalAction(GLOBAL_ACTION_BACK)
     }

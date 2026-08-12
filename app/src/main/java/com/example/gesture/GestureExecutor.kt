@@ -106,6 +106,9 @@ object GestureExecutor {
             TargetType.SYSTEM_RECENTS -> {
                 service.performRecents()
             }
+            TargetType.AUTO_CLICK_SEND -> {
+                service.clickSendButton(startX, startY)
+            }
         }
     }
 }

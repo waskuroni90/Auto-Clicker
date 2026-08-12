@@ -12,5 +12,6 @@ enum class TargetType(val displayName: String) {
     PLAY_VIDEO_AUDIO("Gallery Video Audio"),
     SYSTEM_BACK("Back"),
     SYSTEM_HOME("Home"),
-    SYSTEM_RECENTS("Recent Apps")
+    SYSTEM_RECENTS("Recent Apps"),
+    AUTO_CLICK_SEND("Auto Click Send")
 }
